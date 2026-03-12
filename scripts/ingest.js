@@ -3,7 +3,7 @@ import { writeFile } from 'node:fs/promises'
 import { parse } from 'csv-parse'
 import { embed } from '../src/embeddings.js'
 
-const CSV_PATH = new URL('../data/tmdb_5000_movies.csv', import.meta.url).pathname
+const CSV_PATH = new URL('../data/imdb_top_1000.csv', import.meta.url).pathname
 const OUTPUT_PATH = new URL('../data/vector-store.json', import.meta.url).pathname
 
 export function parseCSV(filePath) {
@@ -15,6 +15,18 @@ export function parseCSV(filePath) {
       .on('end', () => resolve(records))
       .on('error', reject)
   })
+}
+
+/**
+ * Normaliza uma linha do CSV do IMDB para o formato interno.
+ * Series_Title → title, Overview → overview, índice → id
+ */
+export function normalizeMovie(row, index) {
+  return {
+    id: index + 1,
+    title: row.Series_Title,
+    overview: row.Overview,
+  }
 }
 
 export function filterMovies(movies) {
@@ -36,20 +48,16 @@ export function filterMovies(movies) {
 async function main() {
   console.log('📖 Lendo CSV...')
   const rows = await parseCSV(CSV_PATH)
-  const { valid, skipped } = filterMovies(rows)
+  const normalized = rows.map(normalizeMovie)
+  const { valid, skipped } = filterMovies(normalized)
 
   console.log(`📊 ${valid.length} filmes para indexar, ${skipped} ignorados\n`)
 
   const movies = []
-  for (const [i, row] of valid.entries()) {
+  for (const [i, movie] of valid.entries()) {
     process.stdout.write(`\r⚙ Gerando embeddings: ${i + 1}/${valid.length}`)
-    const embedding = await embed(row.overview)
-    movies.push({
-      id: Number(row.id),
-      title: row.title,
-      overview: row.overview,
-      embedding,
-    })
+    const embedding = await embed(movie.overview)
+    movies.push({ ...movie, embedding })
   }
 
   console.log(`\n✅ ${movies.length} filmes indexados`)

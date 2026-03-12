@@ -3,10 +3,10 @@ import assert from 'node:assert/strict'
 import { writeFile, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { parseCSV, filterMovies } from '../scripts/ingest.js'
+import { parseCSV, normalizeMovie, filterMovies } from '../scripts/ingest.js'
 
-test('parseCSV lê colunas corretamente', async (t) => {
-  const csvContent = `id,title,overview\n157336,Interstellar,A team travels through space\n550,Fight Club,An insomniac office worker`
+test('parseCSV lê colunas do IMDB corretamente', async (t) => {
+  const csvContent = `Series_Title,Overview,Released_Year\nInterstellar,A team travels through space,2014\nFight Club,An insomniac office worker,1999`
   const tmpFile = join(tmpdir(), `test-${Date.now()}.csv`)
   await writeFile(tmpFile, csvContent)
   t.after(() => unlink(tmpFile))
@@ -14,9 +14,18 @@ test('parseCSV lê colunas corretamente', async (t) => {
   const rows = await parseCSV(tmpFile)
 
   assert.equal(rows.length, 2)
-  assert.equal(rows[0].id, '157336')
-  assert.equal(rows[0].title, 'Interstellar')
-  assert.equal(rows[0].overview, 'A team travels through space')
+  assert.equal(rows[0].Series_Title, 'Interstellar')
+  assert.equal(rows[0].Overview, 'A team travels through space')
+})
+
+test('normalizeMovie mapeia colunas do IMDB para formato interno', () => {
+  const row = { Series_Title: 'Interstellar', Overview: 'A team travels through space' }
+
+  const movie = normalizeMovie(row, 0)
+
+  assert.equal(movie.id, 1)
+  assert.equal(movie.title, 'Interstellar')
+  assert.equal(movie.overview, 'A team travels through space')
 })
 
 test('filterMovies mantém filmes com overview', () => {
