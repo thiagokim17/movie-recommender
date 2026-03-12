@@ -19,13 +19,20 @@ test('parseCSV lê colunas do IMDB corretamente', async (t) => {
 })
 
 test('normalizeMovie mapeia colunas do IMDB para formato interno', () => {
-  const row = { Series_Title: 'Interstellar', Overview: 'A team travels through space' }
+  const row = {
+    Series_Title: 'Interstellar',
+    Overview: 'A team travels through space',
+    IMDB_Rating: '8.6',
+    Genre: 'Adventure, Drama, Sci-Fi',
+  }
 
   const movie = normalizeMovie(row, 0)
 
   assert.equal(movie.id, 1)
   assert.equal(movie.title, 'Interstellar')
   assert.equal(movie.overview, 'A team travels through space')
+  assert.equal(movie.rating, 8.6)
+  assert.equal(movie.genres, 'Adventure, Drama, Sci-Fi')
 })
 
 test('filterMovies mantém filmes com overview', () => {

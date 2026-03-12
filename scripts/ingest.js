@@ -20,12 +20,15 @@ export function parseCSV(filePath) {
 /**
  * Normaliza uma linha do CSV do IMDB para o formato interno.
  * Series_Title → title, Overview → overview, índice → id
+ * IMDB_Rating → rating (parseFloat), Genre → genres
  */
 export function normalizeMovie(row, index) {
   return {
     id: index + 1,
     title: row.Series_Title,
     overview: row.Overview,
+    rating: parseFloat(row.IMDB_Rating) || 0,
+    genres: row.Genre || '',
   }
 }
 
