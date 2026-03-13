@@ -16,6 +16,10 @@ export function createNeo4jVectorStore() {
     nodeLabel: 'Movie',
     textNodeProperty: 'overview',
     embeddingNodeProperty: 'embedding',
+    retrievalQuery: `
+      RETURN node.overview AS text, score,
+      node { .title, .overview, .rating, .genres, id: node.id } AS metadata
+    `,
   }
 
   return {
