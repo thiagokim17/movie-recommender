@@ -1,10 +1,8 @@
 import { createReadStream } from 'node:fs'
-import { writeFile } from 'node:fs/promises'
 import { parse } from 'csv-parse'
-import { embed } from '../src/embeddings.js'
+import { getVectorStore } from '../src/vectorStore/index.js'
 
 const CSV_PATH = new URL('../data/imdb_top_1000.csv', import.meta.url).pathname
-const OUTPUT_PATH = new URL('../data/vector-store.json', import.meta.url).pathname
 
 export function parseCSV(filePath) {
   return new Promise((resolve, reject) => {
@@ -19,8 +17,6 @@ export function parseCSV(filePath) {
 
 /**
  * Normaliza uma linha do CSV do IMDB para o formato interno.
- * Series_Title → title, Overview → overview, índice → id
- * IMDB_Rating → rating (parseFloat), Genre → genres
  */
 export function normalizeMovie(row, index) {
   return {
@@ -53,22 +49,13 @@ async function main() {
   const rows = await parseCSV(CSV_PATH)
   const normalized = rows.map(normalizeMovie)
   const { valid, skipped } = filterMovies(normalized)
-
   console.log(`📊 ${valid.length} filmes para indexar, ${skipped} ignorados\n`)
 
-  const movies = []
-  for (const [i, movie] of valid.entries()) {
-    process.stdout.write(`\r⚙ Gerando embeddings: ${i + 1}/${valid.length}`)
-    const embedding = await embed(movie.overview)
-    movies.push({ ...movie, embedding })
-  }
-
-  console.log(`\n✅ ${movies.length} filmes indexados`)
-  await writeFile(OUTPUT_PATH, JSON.stringify(movies, null, 2))
-  console.log('💾 Salvo em data/vector-store.json')
+  const vectorStore = await getVectorStore()
+  await vectorStore.save(valid)
+  console.log(`✅ ${valid.length} filmes indexados`)
 }
 
-// Só executa quando chamado diretamente (não em testes)
 if (process.argv[1] === new URL(import.meta.url).pathname) {
   main().catch(console.error)
 }
