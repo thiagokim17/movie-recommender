@@ -72,6 +72,10 @@ test('similaritySearch resultado contém os campos esperados', async (t) => {
   assert.ok('genres' in results[0], 'deve ter genres')
   assert.ok('poster_link' in results[0], 'deve ter poster_link')
   assert.ok('score' in results[0], 'deve ter score')
+  assert.ok('score_breakdown' in results[0], 'deve ter score_breakdown')
+  assert.ok('similarity' in results[0].score_breakdown, 'deve ter similarity')
+  assert.ok('ratingScore' in results[0].score_breakdown, 'deve ter ratingScore')
+  assert.ok('genreBoost' in results[0].score_breakdown, 'deve ter genreBoost')
 })
 
 test('similaritySearch score está entre 0 e 1', async (t) => {
