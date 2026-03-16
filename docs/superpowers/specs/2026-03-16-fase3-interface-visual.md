@@ -383,6 +383,8 @@ Instalar na raiz:
 npm install express concurrently
 ```
 
+> O `package.json` raiz já tem `"type": "module"` (adicionado na Fase 1), portanto `server.js` pode usar `import` e `await` top-level sem nenhuma configuração adicional.
+
 **`client/package.json`:**
 - `react`, `react-dom`
 - `@vitejs/plugin-react`
@@ -393,7 +395,9 @@ npm install express concurrently
 
 ## Testes
 
-Não há novos testes unitários na Fase 3 — a lógica de negócio já é coberta pelas fases anteriores (19 testes). A validação é feita via uso manual do app no browser.
+Não há novos testes unitários na Fase 3 — a lógica de negócio já é coberta pelas fases anteriores. A validação é feita via uso manual do app no browser.
+
+Após modificar `normalizeMovie` em `scripts/ingest.js`, executar `npm test` para confirmar que os 19 testes existentes continuam passando. Os testes de `ingest.test.js` importam e testam `normalizeMovie` — verificar se algum usa `assert.deepEqual` no objeto inteiro (o campo extra `poster_link` pode causar falha). Se necessário, atualizar os testes para incluir `poster_link` no resultado esperado.
 
 ---
 
