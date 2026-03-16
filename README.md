@@ -1,6 +1,6 @@
 # Movie Recommender
 
-Recomendador de filmes por similaridade semântica usando embeddings e busca vetorial. Dado um texto de busca, encontra os filmes do IMDB Top 1000 mais relevantes usando uma combinação de similaridade semântica, nota IMDB e boost de gênero.
+Recomendador de filmes por similaridade semântica com interface web. Dado um texto de busca, encontra os filmes do IMDB Top 1000 mais relevantes usando uma combinação de similaridade semântica, nota IMDB e boost de gênero — e explica como cada pontuação foi calculada.
 
 ## Como funciona
 
@@ -18,6 +18,8 @@ score = (similarity × 0.6) + (rating/10 × 0.3) + (genreBoost × 0.1)
 - **Nota IMDB (30%)** — favorece filmes bem avaliados
 - **Boost de gênero (10%)** — bônus quando a busca menciona um gênero do filme (ex: "action thriller")
 
+Clique em qualquer card para ver como cada componente contribuiu para o score daquele filme.
+
 ## Requisitos
 
 - Node.js 22+
@@ -32,9 +34,7 @@ npm install
 
 ## Uso
 
-### Modo JSON (padrão)
-
-Armazena os embeddings em um arquivo local `data/vector-store.json`. Não requer infraestrutura adicional.
+### Interface Web
 
 **1. Gerar os embeddings** — só precisa rodar uma vez (~5–15 min):
 
@@ -42,9 +42,32 @@ Armazena os embeddings em um arquivo local `data/vector-store.json`. Não requer
 npm run ingest
 ```
 
-Lê o CSV, gera embeddings para cada sinopse via HuggingFace `Xenova/all-MiniLM-L6-v2` e salva em `data/vector-store.json`.
+Lê o CSV, gera embeddings para cada sinopse via HuggingFace `Xenova/all-MiniLM-L6-v2` e salva em `data/vector-store.json`. Inclui poster, rating e gêneros.
 
-**2. Buscar filmes:**
+**2. Subir o servidor de desenvolvimento:**
+
+```bash
+npm run dev
+```
+
+Abre em `http://localhost:5173`. O servidor API sobe automaticamente em `http://localhost:3001`.
+
+Para subir apenas o servidor (sem o cliente Vite):
+
+```bash
+npm run server
+```
+
+Para fazer build do cliente e servir via Express:
+
+```bash
+npm run build   # gera client/dist/
+npm run server  # serve a SPA + API na porta 3001
+```
+
+### CLI
+
+**Buscar filmes pelo terminal:**
 
 ```bash
 npm run recommend -- "romantic comedy"
@@ -95,7 +118,7 @@ npm run infra:down
 npm test
 ```
 
-19 testes unitários cobrindo similaridade, scoring, ingest e vector store JSON.
+20 testes unitários cobrindo similaridade, scoring, ingest e vector store JSON.
 
 ## Estrutura
 
@@ -103,14 +126,22 @@ npm test
 src/
   similarity.js        # Cosine similarity pura (sem dependências)
   embeddings.js        # Wrapper HuggingFace (singleton)
-  scoring.js           # Score combinado (similarity + rating + genre boost)
+  scoring.js           # Score combinado — retorna { total, similarity, ratingScore, genreBoost }
   vectorStore/
     index.js           # Factory: seleciona implementação via VECTOR_STORE env
-    json.js            # Implementação JSON (arquivo local)
+    json.js            # Implementação JSON (arquivo local) — inclui score_breakdown na resposta
     neo4j.js           # Implementação Neo4j via LangChain
 scripts/
   ingest.js            # Lê CSV → indexa via vector store
   recommend.js         # Busca os K filmes mais similares
+server.js              # API Express + serve SPA (porta 3001)
+client/                # Frontend React 19 + Vite 6 + Tailwind CSS v4
+  src/
+    App.jsx            # Layout principal, busca, estados
+    components/
+      SearchBar.jsx    # Input controlado com submit por Enter
+      MovieGrid.jsx    # Grid responsivo (2→5 colunas)
+      MovieCard.jsx    # Card com poster, score, expand/collapse de breakdown
 tests/                 # Testes unitários (node:test)
 data/                  # imdb_top_1000.csv (não versionado) e vector-store.json (não versionado)
 docker-compose.yml     # Sobe Neo4j local para o modo Neo4j
