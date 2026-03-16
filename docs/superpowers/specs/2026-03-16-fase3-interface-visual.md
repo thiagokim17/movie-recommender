@@ -93,6 +93,8 @@ app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`)
 - Serve `client/dist/` como arquivos estáticos em produção
 - Endpoint único: `GET /api/recommend`
 
+> **Nota sobre o SPA fallback:** o `app.get('*', ...)` serve `client/dist/index.html` apenas em produção (após executar `npm run build`). Em desenvolvimento, o Vite roda na porta 5173 e o fallback não é usado. Se o desenvolvedor iniciar o server sem ter feito o build, o fallback vai retornar erro de arquivo não encontrado para rotas desconhecidas — isso é esperado em dev.
+
 ### `GET /api/recommend?q=<query>`
 
 **Parâmetros:**
@@ -181,15 +183,24 @@ metadata: {
 },
 ```
 
-`similaritySearch()` — atualizar o `retrievalQuery` para incluir `poster_link` e atualizar o `.map()`:
+`similaritySearch()` — substituir o `retrievalQuery` existente no objeto `config` para incluir `poster_link`:
 
 ```javascript
-// No config, adicionar retrievalQuery:
-retrievalQuery: `
-  RETURN node.overview AS text, score,
-  { id: node.id, title: node.title, overview: node.overview,
-    rating: node.rating, genres: node.genres, poster_link: node.poster_link } AS metadata
-`,
+// Substituir o retrievalQuery existente no config (não adicionar um segundo):
+const config = {
+  url: process.env.NEO4J_URI || 'bolt://localhost:7687',
+  username: process.env.NEO4J_USER || 'neo4j',
+  password: process.env.NEO4J_PASSWORD || 'password',
+  indexName: 'movie_embeddings',
+  nodeLabel: 'Movie',
+  textNodeProperty: 'overview',
+  embeddingNodeProperty: 'embedding',
+  retrievalQuery: `
+    RETURN node.overview AS text, score,
+    { id: node.id, title: node.title, overview: node.overview,
+      rating: node.rating, genres: node.genres, poster_link: node.poster_link } AS metadata
+  `,
+}
 ```
 
 ```javascript
@@ -366,6 +377,11 @@ Tailwind v4 usa um único import (sem as diretivas `@tailwind base/components/ut
 **Raiz (`package.json`):**
 - `express` — servidor HTTP
 - `concurrently` — rodar server + client em paralelo no dev
+
+Instalar na raiz:
+```bash
+npm install express concurrently
+```
 
 **`client/package.json`:**
 - `react`, `react-dom`
