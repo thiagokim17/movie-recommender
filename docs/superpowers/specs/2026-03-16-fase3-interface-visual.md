@@ -51,6 +51,44 @@ usuário digita → SearchBar → fetch('/api/recommend?q=...')
 
 ### `server.js`
 
+Esqueleto:
+```javascript
+import express from 'express'
+import { fileURLToPath } from 'node:url'
+import { join, dirname } from 'node:path'
+import { getVectorStore } from './src/vectorStore/index.js'
+
+const app = express()
+const PORT = process.env.PORT || 3001
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+// Inicializa o vector store uma única vez ao subir o servidor
+const vectorStore = await getVectorStore()
+
+// Servir o build do React em produção
+app.use(express.static(join(__dirname, 'client/dist')))
+
+app.get('/api/recommend', async (req, res) => {
+  const q = req.query.q?.trim()
+  if (!q) return res.status(400).json({ error: "Parâmetro 'q' é obrigatório" })
+  try {
+    const results = await vectorStore.similaritySearch(q)
+    res.json(results)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Erro interno ao buscar recomendações' })
+  }
+})
+
+// Fallback para SPA (React Router, se usado no futuro)
+app.get('*', (req, res) => {
+  res.sendFile(join(__dirname, 'client/dist/index.html'))
+})
+
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`))
+```
+
+- O vector store é inicializado de forma **eager** (uma única vez ao subir), não por request — evita overhead de carregamento do modelo HuggingFace a cada chamada
 - Porta: `process.env.PORT || 3001`
 - Serve `client/dist/` como arquivos estáticos em produção
 - Endpoint único: `GET /api/recommend`
@@ -64,6 +102,7 @@ usuário digita → SearchBar → fetch('/api/recommend?q=...')
 ```json
 [
   {
+    "id": 42,
     "title": "Gravity",
     "overview": "Two astronauts work together...",
     "poster_link": "https://m.media-amazon.com/images/...",
@@ -73,6 +112,8 @@ usuário digita → SearchBar → fetch('/api/recommend?q=...')
   }
 ]
 ```
+
+> O campo `id` é usado como `key` no `map()` do `MovieGrid`. Não deve ser omitido.
 
 **Resposta 400** (q ausente ou vazio):
 ```json
@@ -106,13 +147,58 @@ export function normalizeMovie(row, index) {
 
 ### `src/vectorStore/json.js`
 
-- `save()`: persiste `poster_link` junto com os demais campos
-- `similaritySearch()`: inclui `poster_link` no objeto retornado
+`save()` já persiste todos os campos do objeto movie — como `poster_link` agora vem do `normalizeMovie`, ele será salvo automaticamente.
+
+`similaritySearch()` — adicionar `poster_link` no objeto retornado pelo `.map()`:
+```javascript
+.map((movie) => ({
+  id: movie.id,
+  title: movie.title,
+  overview: movie.overview,
+  rating: movie.rating,
+  genres: movie.genres,
+  poster_link: movie.poster_link || '',  // novo
+  score: combinedScore(...),
+}))
+```
 
 ### `src/vectorStore/neo4j.js`
 
-- `save()`: adiciona `poster_link` no `metadata` do `Document`
-- `similaritySearch()`: inclui `poster_link` no objeto retornado via `retrievalQuery`
+`save()` — adicionar `poster_link` no `metadata` do `Document`:
+```javascript
+metadata: {
+  id: movie.id,
+  title: movie.title,
+  overview: movie.overview,
+  rating: movie.rating || 0,
+  genres: movie.genres || '',
+  poster_link: movie.poster_link || '',  // novo
+},
+```
+
+`similaritySearch()` — atualizar o `retrievalQuery` para incluir `poster_link` e atualizar o `.map()`:
+
+```javascript
+// No config, adicionar retrievalQuery:
+retrievalQuery: `
+  RETURN node.overview AS text, score,
+  { id: node.id, title: node.title, overview: node.overview,
+    rating: node.rating, genres: node.genres, poster_link: node.poster_link } AS metadata
+`,
+```
+
+```javascript
+// No .map() de similaritySearch:
+return results.map(([doc, score]) => ({
+  id: doc.metadata.id,
+  title: doc.metadata.title,
+  overview: doc.metadata.overview,
+  rating: doc.metadata.rating,
+  genres: doc.metadata.genres,
+  poster_link: doc.metadata.poster_link || '',  // novo
+  score,
+}))
+```
 
 > **Nota:** Após adicionar `poster_link` ao `normalizeMovie`, o ingest precisa ser re-executado para regenerar o `vector-store.json`.
 
@@ -214,15 +300,23 @@ Elementos:
 ```javascript
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     proxy: {
       '/api': 'http://localhost:3001'
     }
   }
 })
+```
+
+### `client/src/index.css`
+
+Tailwind v4 usa um único import (sem as diretivas `@tailwind base/components/utilities` do v3):
+```css
+@import "tailwindcss";
 ```
 
 ### Scripts em `package.json` (raiz)
@@ -232,11 +326,29 @@ export default defineConfig({
 "dev": "concurrently \"npm run server\" \"npm run client\""
 ```
 
-### Scripts em `client/package.json`
+### `client/package.json` (completo)
 ```json
-"dev": "vite",
-"build": "vite build",
-"preview": "vite preview"
+{
+  "name": "movie-recommender-client",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "tailwindcss": "^4.0.0",
+    "vite": "^6.0.0"
+  }
+}
 ```
 
 ---
