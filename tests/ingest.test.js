@@ -24,6 +24,7 @@ test('normalizeMovie mapeia colunas do IMDB para formato interno', () => {
     Overview: 'A team travels through space',
     IMDB_Rating: '8.6',
     Genre: 'Adventure, Drama, Sci-Fi',
+    Poster_Link: 'https://m.media-amazon.com/images/test.jpg',
   }
 
   const movie = normalizeMovie(row, 0)
@@ -33,6 +34,7 @@ test('normalizeMovie mapeia colunas do IMDB para formato interno', () => {
   assert.equal(movie.overview, 'A team travels through space')
   assert.equal(movie.rating, 8.6)
   assert.equal(movie.genres, 'Adventure, Drama, Sci-Fi')
+  assert.equal(movie.poster_link, 'https://m.media-amazon.com/images/test.jpg')
 })
 
 test('filterMovies mantém filmes com overview', () => {

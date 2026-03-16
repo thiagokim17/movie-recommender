@@ -30,6 +30,7 @@ export function createJsonVectorStore(storePath = DEFAULT_PATH, embedFn = defaul
           overview: movie.overview,
           rating: movie.rating,
           genres: movie.genres,
+          poster_link: movie.poster_link || '',
           score: combinedScore(
             cosineSimilarity(queryEmbedding, movie.embedding),
             movie.rating,

@@ -25,6 +25,7 @@ export function normalizeMovie(row, index) {
     overview: row.Overview,
     rating: parseFloat(row.IMDB_Rating) || 0,
     genres: row.Genre || '',
+    poster_link: row.Poster_Link || '',
   }
 }
 

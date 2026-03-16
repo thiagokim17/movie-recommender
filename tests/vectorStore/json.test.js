@@ -58,7 +58,7 @@ test('similaritySearch resultado contém os campos esperados', async (t) => {
   t.after(() => unlink(path).catch(() => {}))
 
   const movies = [
-    { id: 42, title: 'Test Movie', overview: 'Test overview', rating: 8.0, genres: 'Drama', embedding: [1, 0] },
+    { id: 42, title: 'Test Movie', overview: 'Test overview', rating: 8.0, genres: 'Drama', poster_link: 'https://example.com/poster.jpg', embedding: [1, 0] },
   ]
   await writeFile(path, JSON.stringify(movies))
 
@@ -70,6 +70,7 @@ test('similaritySearch resultado contém os campos esperados', async (t) => {
   assert.ok('overview' in results[0], 'deve ter overview')
   assert.ok('rating' in results[0], 'deve ter rating')
   assert.ok('genres' in results[0], 'deve ter genres')
+  assert.ok('poster_link' in results[0], 'deve ter poster_link')
   assert.ok('score' in results[0], 'deve ter score')
 })
 
