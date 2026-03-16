@@ -1,5 +1,6 @@
 node_modules/
 .worktrees/
+.superpowers/
 data/vector-store.json
 data/*.csv
 .env*
