@@ -32,9 +32,9 @@ export default function MovieCard({ movie, rank }) {
         </div>
         <div className="text-xs text-[#666] mb-2 truncate">{movie.genres}</div>
         <div className="flex justify-between items-center">
-          <span className="text-[#e5c100] text-xs font-semibold">⭐ {movie.rating?.toFixed(1)}</span>
+          <span className="text-[#e5c100] text-xs font-semibold">⭐ {(movie.rating || 0).toFixed(1)}</span>
           <span className="text-xs text-[#555] bg-[#1f1f1f] px-2 py-0.5 rounded-full">
-            {movie.score?.toFixed(2)}
+            {(movie.score || 0).toFixed(2)}
           </span>
         </div>
         {/* Score bar */}
