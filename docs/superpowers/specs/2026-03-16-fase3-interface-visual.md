@@ -158,7 +158,12 @@ export function normalizeMovie(row, index) {
   rating: movie.rating,
   genres: movie.genres,
   poster_link: movie.poster_link || '',  // novo
-  score: combinedScore(...),
+  score: combinedScore(
+    cosineSimilarity(queryEmbedding, movie.embedding),
+    movie.rating,
+    movie.genres,
+    query
+  ),
 }))
 ```
 
@@ -199,6 +204,8 @@ return results.map(([doc, score]) => ({
   score,
 }))
 ```
+
+> **Nota sobre o score no Neo4j:** o score retornado é a similaridade vetorial pura do LangChain (sem `combinedScore`). Isso é intencional — o Neo4j usa um índice vetorial nativo e não aplica o boost de rating/gênero da Fase 2. O comportamento é diferente do modo JSON, mas aceitável para a Fase 3.
 
 > **Nota:** Após adicionar `poster_link` ao `normalizeMovie`, o ingest precisa ser re-executado para regenerar o `vector-store.json`.
 
@@ -323,10 +330,11 @@ Tailwind v4 usa um único import (sem as diretivas `@tailwind base/components/ut
 ```json
 "server": "node server.js",
 "client": "cd client && npm run dev",
-"dev": "concurrently \"npm run server\" \"npm run client\""
+"dev": "concurrently \"npm run server\" \"npm run client\"",
+"build": "cd client && npm run build"
 ```
 
-### `client/package.json` (completo)
+### `client/package.json`
 ```json
 {
   "name": "movie-recommender-client",
