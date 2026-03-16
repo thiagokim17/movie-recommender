@@ -26,7 +26,7 @@ app.get('/api/recommend', async (req, res) => {
 })
 
 // Fallback SPA — só funciona após npm run build
-app.get('*', (req, res) => {
+app.get('/{*path}', (req, res) => {
   res.sendFile(join(__dirname, 'client/dist/index.html'))
 })
 

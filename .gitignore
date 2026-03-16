@@ -5,3 +5,4 @@ data/vector-store.json
 data/*.csv
 .env*
 !.env.example
+client/dist/
