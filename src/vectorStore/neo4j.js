@@ -18,7 +18,8 @@ export function createNeo4jVectorStore() {
     embeddingNodeProperty: 'embedding',
     retrievalQuery: `
       RETURN node.overview AS text, score,
-      node { .title, .overview, .rating, .genres, id: node.id } AS metadata
+      { id: node.id, title: node.title, overview: node.overview,
+        rating: node.rating, genres: node.genres, poster_link: node.poster_link } AS metadata
     `,
   }
 
@@ -38,6 +39,7 @@ export function createNeo4jVectorStore() {
               overview: movie.overview,
               rating: movie.rating || 0,
               genres: movie.genres || '',
+              poster_link: movie.poster_link || '',
             },
           })
       )
@@ -65,6 +67,7 @@ export function createNeo4jVectorStore() {
         overview: doc.metadata.overview,
         rating: doc.metadata.rating,
         genres: doc.metadata.genres,
+        poster_link: doc.metadata.poster_link || '',
         score,
       }))
     },
